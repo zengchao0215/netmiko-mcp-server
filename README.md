@@ -1,9 +1,15 @@
 
 # mcp-netmiko-server
 
-An MCP server that enables LLMS interacting with your network devices
+An MCP server that enables LLMs interacting with your network devices
  via SSH (netmiko).
 
+<img width="740" alt="mcp-netmiko-demo" src="https://github.com/user-attachments/assets/08ea7feb-25fc-45c9-a70c-83b75c01a725" />
+
+
+## How to use
+
+* Install
 
 ```console
 git clone git@github.com:upa/mcp-netmiko-server

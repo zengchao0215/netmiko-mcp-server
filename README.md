@@ -12,7 +12,7 @@ An MCP server that enables LLMs interacting with your network devices
 * Install
 
 ```console
-git clone git@github.com:upa/mcp-netmiko-server
+git clone https://github.com/upa/mcp-netmiko-server
 cd mcp-netmiko-server
 
 # Run: write your toml file that lists your devices

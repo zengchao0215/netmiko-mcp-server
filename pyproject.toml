@@ -1,0 +1,11 @@
+[project]
+name = "mcp-netmiko-server"
+version = "0.1.0"
+description = "MCP netmiko server for LLMs interacting with Network Devices"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "mcp[cli]>=1.6.0",
+    "netmiko>=4.5.0",
+    "pytest>=8.3.5",
+]

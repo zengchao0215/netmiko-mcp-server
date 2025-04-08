@@ -42,7 +42,6 @@ List your network devices in a toml file like [sample.toml](test/sample.toml):
 username = "rouser"
 password = "rouserpassword"
 
-
 [qfx1]
 
 hostname = "172.16.0.40"
@@ -52,12 +51,14 @@ device_type = "juniper_junos"
 
 hostname = "nexus1.lab"
 device_type = "cisco_nxos"
-
 ```
 
-`[default]` is a special section that defines the default
-values. Devices inherit the default values if not defined on their
-sections.
+`[default]` is a special section that defines the default values such
+as `username` and `password`. Devices inherit the default values if
+not defined on their sections.
+
+For `device_type` values, see [netmiko Supported
+Platforms](https://ktbyers.github.io/netmiko/PLATFORMS.html)
 
 
 * claude desktop config json:

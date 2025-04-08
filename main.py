@@ -54,6 +54,24 @@ class Device:
         return str(output)    
 
 
+    def send_config_set_and_commit_and_save(self, cmds: list[str]) -> str:
+        with ConnectHandler(**self.connect_kwargs) as conn:
+            output = conn.send_config_set(cmds)
+            try:
+                output += conn.commit()
+            except AttributeError:
+                pass
+
+            try:
+                output += conn.save_config()
+            except NotImplementedError:
+                pass
+
+        return output
+
+    
+
+
 def load_config_toml(tomlpath: str) -> dict[str, Device]:
     devs: dict[str, Device] = {}
 
@@ -88,8 +106,8 @@ def list_devices() -> list[str]:
     return dev_strings
 
 
-@mcp.tool(description="Tool that sends a command to a network device specified by the name and returns its output. Note that acceptalbe commands depends on the device_type of the device you specified. You can get the list of name and device_type by using the list_device tool.")
-def send_command_and_getoutput(name: str, command: str) -> str:
+@mcp.tool(description="Tool that sends a command to a network device specified by the name and returns its output. Note that acceptalbe commands depend on the device_type of the device you specified. You can get the list of name and device_type by using the list_device tool.")
+def send_command_and_get_output(name: str, command: str) -> str:
     devs = load_config_toml(sys.argv[1])
     if not name in devs:
         return f"Error: no device named '{name}'"
@@ -100,6 +118,17 @@ def send_command_and_getoutput(name: str, command: str) -> str:
     except exceptions.ConnectionException as e:
         return f"Connection Error: {e}"
         
+@mcp.tool(description="Tool that sends a series of configuration commands to a network device specified by the name. After sending the commands, this tool automatically calls commit and save if necessary, and it returns their output. Note that acceptable configuration commands depdend on the device_type of the device you specified. You can get the list of name and device_type by using the list_device tool.")
+def set_config_commands_and_commit_or_save(name: str, commands: list[str]) -> str:
+    devs = load_config_toml(sys.argv[1])
+    if not name in devs:
+        return f"Error: no device named '{name}'"
+    
+    try:
+        ret = devs[name].send_config_set_and_commit_and_save(commands)
+        return ret
+    except exceptions.ConnectionException as e:
+        return (f"Connection Error: {e}")
 
 
 def main():

@@ -4,6 +4,13 @@
 An MCP server that enables LLMs interacting with your network devices
  via SSH (netmiko).
 
+| Tool                                   | Description                                                            |
+|:--------------------------------------:|:----------------------------------------------------------------------:|
+| list_devices                           | Return list of network devices names and types defined in a  TOML file |
+| send_command_and_get_output            | Send a command and returns its output                                  |
+| set_config_commands_and_commit_or_save | Send configuration commands and commit or save automatically           |
+
+
 <img width="740" alt="mcp-netmiko-demo" src="https://github.com/user-attachments/assets/08ea7feb-25fc-45c9-a70c-83b75c01a725" />
 
 

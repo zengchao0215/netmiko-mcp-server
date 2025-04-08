@@ -58,7 +58,7 @@ as `username` and `password`. Devices inherit the default values if
 not defined on their sections.
 
 For `device_type` values, see [netmiko Supported
-Platforms](https://ktbyers.github.io/netmiko/PLATFORMS.html)
+Platforms](https://ktbyers.github.io/netmiko/PLATFORMS.html).
 
 
 * claude desktop config json:

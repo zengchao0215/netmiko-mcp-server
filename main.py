@@ -10,6 +10,11 @@ from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
 from starlette.routing import Mount
 
+import logging
+logger = logging.getLogger("mcp-netmiko-server")
+logging.basicConfig(level=logging.INFO)
+
+
 tomlpath: str|None = None
 
 mcp = FastMCP("netmiko server", dependencies=["netmiko"])
@@ -102,6 +107,9 @@ def load_config_toml() -> dict[str, Device]:
 
 @mcp.tool(description="Tool that returns list of network devices to which we can send command. Each line returns name of a device and its device_type (e.g., juniper, cisco, dell)")
 def list_devices() -> list[str]:
+
+    logger.info("list_devices called")
+
     dev_strings = []
     devs = load_config_toml()
     for name, dev in sorted(devs.items(), key = lambda x: x[0]):
@@ -112,26 +120,39 @@ def list_devices() -> list[str]:
 @mcp.tool(description="Tool that sends a command to a network device specified by the name and returns its output. Note that acceptalbe commands depend on the device_type of the device you specified. You can get the list of name and device_type by using the list_device tool.")
 def send_command_and_get_output(name: str, command: str) -> str:
     devs = load_config_toml()
+
     if not name in devs:
-        return f"Error: no device named '{name}'"
+        ret = f"Error: no device named '{name}'"
+        logger.warning(f"get_output: {ret}")
+        return ret
 
     try:
         ret = devs[name].send_command(command)
-        return ret
     except exceptions.ConnectionException as e:
-        return f"Connection Error: {e}"
+        ret = f"Connection Error: {e}"
+
+    logger.info(f"get: name={name} command='{command}' ret='{ret[:100]} ...'")
+
+    return ret
         
+
 @mcp.tool(description="Tool that sends a series of configuration commands to a network device specified by the name. After sending the commands, this tool automatically calls commit and save if necessary, and it returns their output. Note that acceptable configuration commands depdend on the device_type of the device you specified. You can get the list of name and device_type by using the list_device tool.")
 def set_config_commands_and_commit_or_save(name: str, commands: list[str]) -> str:
     devs = load_config_toml()
     if not name in devs:
-        return f"Error: no device named '{name}'"
+        ret = f"Error: no device named '{name}'"
+        logger.warning(f"get_output: {ret}")
+        return ret
     
     try:
         ret = devs[name].send_config_set_and_commit_and_save(commands)
-        return ret
+        
     except exceptions.ConnectionException as e:
-        return (f"Connection Error: {e}")
+        ret = f"Connection Error: {e}"
+
+    logger.info(f"set: name={name} command='{commands}' ret='{ret[:100]} ...'")
+
+    return ret
 
 
 def main():
@@ -144,6 +165,8 @@ def main():
                         help="port number for SSE server")
     parser.add_argument("--bind", type=str, default = "127.0.0.1",
                         help="bind address for SSE server")
+    parser.add_argument("--debug", action="store_true",
+                        help="enable starlette debug mode for SSE server")
     
     parser.add_argument("tomlpath", help = "path to config toml file")
 
@@ -157,7 +180,7 @@ def main():
 
     if args.sse:
         app = Starlette(
-            debug=True,
+            debug=args.debug,
             routes = [
                 Mount("/", app=mcp.sse_app())
             ]

@@ -23,13 +23,14 @@ An MCP server that enables LLMs interacting with your network devices
 git clone https://github.com/upa/mcp-netmiko-server
 cd mcp-netmiko-server
 
-# Run: write your toml file that lists your devices
-uv run --with mcp[cli] --with netmiko $(pwd)/main.py $(pwd)/test/sample.toml
+# Write your toml file that lists your devices
+vim my-devices.toml
 
-# Develop
-uv venv
-uv add mcp[cli] netmiko
-./main.py test/sample.toml
+# Run via stdio 
+uv run --with mcp[cli] --with netmiko main.py my-devices.toml
+
+# Run as an SSE server: URL is http://localhost:10000/sse in this case
+uv run --with mcp[cli] --with netmiko main.py my-devices.toml --sse
 ```
 
 * Configuration

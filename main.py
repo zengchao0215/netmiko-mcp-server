@@ -1,7 +1,5 @@
 
-import os
-import logging
-import sys
+import argparse
 import tomllib
 
 from netmiko import ConnectHandler
@@ -9,8 +7,10 @@ from netmiko import exceptions
 from netmiko.ssh_dispatcher import platforms, telnet_platforms
 
 from mcp.server.fastmcp import FastMCP
+from starlette.applications import Starlette
+from starlette.routing import Mount
 
-
+tomlpath: str|None = None
 
 mcp = FastMCP("netmiko server", dependencies=["netmiko"])
 
@@ -72,8 +72,11 @@ class Device:
     
 
 
-def load_config_toml(tomlpath: str) -> dict[str, Device]:
+def load_config_toml() -> dict[str, Device]:
     devs: dict[str, Device] = {}
+
+    if not tomlpath:
+        raise RuntimeError("config toml is not specified")
 
     with open(tomlpath, "rb") as f:
         data = tomllib.load(f)
@@ -100,7 +103,7 @@ def load_config_toml(tomlpath: str) -> dict[str, Device]:
 @mcp.tool(description="Tool that returns list of network devices to which we can send command. Each line returns name of a device and its device_type (e.g., juniper, cisco, dell)")
 def list_devices() -> list[str]:
     dev_strings = []
-    devs = load_config_toml(sys.argv[1])
+    devs = load_config_toml()
     for name, dev in sorted(devs.items(), key = lambda x: x[0]):
         dev_strings.append(f"Name={name} DeviceType={dev.device_type}")
     return dev_strings
@@ -108,7 +111,7 @@ def list_devices() -> list[str]:
 
 @mcp.tool(description="Tool that sends a command to a network device specified by the name and returns its output. Note that acceptalbe commands depend on the device_type of the device you specified. You can get the list of name and device_type by using the list_device tool.")
 def send_command_and_get_output(name: str, command: str) -> str:
-    devs = load_config_toml(sys.argv[1])
+    devs = load_config_toml()
     if not name in devs:
         return f"Error: no device named '{name}'"
 
@@ -120,7 +123,7 @@ def send_command_and_get_output(name: str, command: str) -> str:
         
 @mcp.tool(description="Tool that sends a series of configuration commands to a network device specified by the name. After sending the commands, this tool automatically calls commit and save if necessary, and it returns their output. Note that acceptable configuration commands depdend on the device_type of the device you specified. You can get the list of name and device_type by using the list_device tool.")
 def set_config_commands_and_commit_or_save(name: str, commands: list[str]) -> str:
-    devs = load_config_toml(sys.argv[1])
+    devs = load_config_toml()
     if not name in devs:
         return f"Error: no device named '{name}'"
     
@@ -133,15 +136,38 @@ def set_config_commands_and_commit_or_save(name: str, commands: list[str]) -> st
 
 def main():
 
-    if len(sys.argv) < 2:
-        print("usage: mcp-netmiko-server [CONFIG_TOML]", file = sys.stderr)
-        sys.exit(1)
+    desc = "mcp-netmiko-server"
+    parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument("--sse", action="store_true",
+                        help="run as an SSE server (default stdio)")
+    parser.add_argument("--port", type=int, default = 10000,
+                        help="port number for SSE server")
+    parser.add_argument("--bind", type=str, default = "127.0.0.1",
+                        help="bind address for SSE server")
+    
+    parser.add_argument("tomlpath", help = "path to config toml file")
+
+    args = parser.parse_args()
+
+    global tomlpath
+    tomlpath = args.tomlpath
 
     # make sure the current config toml is valid
-    load_config_toml(sys.argv[1])
+    load_config_toml()
 
-    mcp.run()
+    if args.sse:
+        app = Starlette(
+            debug=True,
+            routes = [
+                Mount("/", app=mcp.sse_app())
+            ]
+        )
 
+        import uvicorn
+        uvicorn.run(app, host=args.bind, port=args.port)
+
+    else:
+        mcp.run()
 
 
 if __name__ == "__main__":

@@ -7,6 +7,14 @@ build/
 dist/
 wheels/
 *.egg-info
+.mypy_cache/
 
 # Virtual environments
 .venv
+
+# Network toml files
+*.network.toml
+!test/sample.network.toml
+
+# VSCode settings
+.vscode/

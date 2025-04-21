@@ -24,18 +24,18 @@ git clone https://github.com/upa/mcp-netmiko-server
 cd mcp-netmiko-server
 
 # Write your toml file that lists your devices
-vim my-devices.toml
+vim my-devices.network.toml
 
-# Run via stdio 
-uv run --with mcp[cli] --with netmiko main.py my-devices.toml
+# Run via stdio
+uv run --with "mcp[cli]" --with netmiko main.py my-devices.network.toml
 
 # Run as an SSE server: URL is http://localhost:10000/sse in this case
-uv run --with mcp[cli] --with netmiko main.py my-devices.toml --sse
+uv run --with "mcp[cli]" --with netmiko main.py my-devices.network.toml --sse
 ```
 
 * Configuration
 
-List your network devices in a toml file like [sample.toml](test/sample.toml):
+List your network devices in a toml file like [sample.network.toml](test/sample.network.toml):
 
 ```toml
 [default]

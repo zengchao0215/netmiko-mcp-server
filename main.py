@@ -40,7 +40,7 @@ class Device:
         self.username = username
         self.password = password
         self.port = port
-    
+
     @property
     def connect_kwargs(self) -> dict:
         return {
@@ -56,7 +56,7 @@ class Device:
     def send_command(self, cmd: str) -> str:
         with ConnectHandler(**self.connect_kwargs) as conn:
             output = conn.send_command(cmd)
-        return str(output)    
+        return str(output)
 
 
     def send_config_set_and_commit_and_save(self, cmds: list[str]) -> str:
@@ -74,7 +74,7 @@ class Device:
 
         return output
 
-    
+
 
 
 def load_config_toml() -> dict[str, Device]:
@@ -101,7 +101,7 @@ def load_config_toml() -> dict[str, Device]:
             v.setdefault("name", name)
 
             devs[name] = Device(**v)
-            
+
     return devs
 
 
@@ -134,7 +134,7 @@ def send_command_and_get_output(name: str, command: str) -> str:
     logger.info(f"get: name={name} command='{command}' ret='{ret[:100]} ...'")
 
     return ret
-        
+
 
 @mcp.tool(description="Tool that sends a series of configuration commands to a network device specified by the name. After sending the commands, this tool automatically calls commit and save if necessary, and it returns their output. Note that acceptable configuration commands depdend on the device_type of the device you specified. You can get the list of name and device_type by using the list_device tool.")
 def set_config_commands_and_commit_or_save(name: str, commands: list[str]) -> str:
@@ -143,10 +143,10 @@ def set_config_commands_and_commit_or_save(name: str, commands: list[str]) -> st
         ret = f"Error: no device named '{name}'"
         logger.warning(f"get_output: {ret}")
         return ret
-    
+
     try:
         ret = devs[name].send_config_set_and_commit_and_save(commands)
-        
+
     except exceptions.ConnectionException as e:
         ret = f"Connection Error: {e}"
 
@@ -167,7 +167,7 @@ def main():
                         help="bind address for SSE server")
     parser.add_argument("--debug", action="store_true",
                         help="enable starlette debug mode for SSE server")
-    
+
     parser.add_argument("tomlpath", help = "path to config toml file")
 
     args = parser.parse_args()

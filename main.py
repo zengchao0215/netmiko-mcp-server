@@ -114,7 +114,7 @@ def list_devices() -> list[str]:
     dev_strings = []
     devs = load_config_toml()
     for name, dev in sorted(devs.items(), key = lambda x: x[0]):
-        dev_strings.append(f"Name={name} DeviceType={dev.device_type}")
+        dev_strings.append(f"Name={name} DeviceType={dev.device_type} Hostname={dev.hostname}")
     return dev_strings
 
 

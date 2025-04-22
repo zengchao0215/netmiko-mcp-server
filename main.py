@@ -16,6 +16,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 tomlpath: str|None = None
+disable_config: bool = False
 
 mcp = FastMCP("netmiko server", dependencies=["netmiko"])
 
@@ -138,6 +139,9 @@ def send_command_and_get_output(name: str, command: str) -> str:
 
 @mcp.tool(description="Tool that sends a series of configuration commands to a network device specified by the name. After sending the commands, this tool automatically calls commit and save if necessary, and it returns their output. Note that acceptable configuration commands depdend on the device_type of the device you specified. You can get the list of name and device_type by using the list_device tool.")
 def set_config_commands_and_commit_or_save(name: str, commands: list[str]) -> str:
+    if disable_config:
+        return "changing configuration is prohibited"
+
     devs = load_config_toml()
     if not name in devs:
         ret = f"Error: no device named '{name}'"
@@ -159,6 +163,8 @@ def main():
 
     desc = "mcp-netmiko-server"
     parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument("--disable-config", action="store_true",
+                        help="disable chaning configuration")
     parser.add_argument("--sse", action="store_true",
                         help="run as an SSE server (default stdio)")
     parser.add_argument("--port", type=int, default = 10000,
@@ -174,6 +180,9 @@ def main():
 
     global tomlpath
     tomlpath = args.tomlpath
+
+    global disable_config
+    disable_config = args.disable_config
 
     # make sure the current config toml is valid
     load_config_toml()

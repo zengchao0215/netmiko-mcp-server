@@ -6,7 +6,7 @@ An MCP server that enables LLMs interacting with your network devices
 
 | Tool                                   | Description                                                               |
 |:---------------------------------------|:--------------------------------------------------------------------------|
-| list_devices                           | Return list of network device names and types defined in a TOML file.     |
+| get_network_device_list                | Return list of network device names and types defined in a TOML file.     |
 | send_command_and_get_output            | Send a command to a device and returns its output.                        |
 | set_config_commands_and_commit_or_save | Send configuration commands to a device and commit or save automatically. |
 

@@ -1,6 +1,7 @@
 
 import argparse
 import tomllib
+import json
 
 from netmiko import ConnectHandler
 from netmiko import exceptions
@@ -41,6 +42,13 @@ class Device:
         self.username = username
         self.password = password
         self.port = port
+
+    def json(self) -> dict:
+        return {
+            "name": self.name,
+            "hostname": self.hostname,
+            "device_type": self.device_type
+        }
 
     @property
     def connect_kwargs(self) -> dict:
@@ -106,20 +114,55 @@ def load_config_toml() -> dict[str, Device]:
     return devs
 
 
-@mcp.tool(description="Tool that returns list of network devices to which we can send command. Each line returns name of a device and its device_type (e.g., juniper, cisco, dell)")
-def list_devices() -> list[str]:
+@mcp.tool()
+def get_network_device_list() -> str:
+    """
+    List all network devices that are accessible through this MCP server.
 
-    logger.info("list_devices called")
+    This resource returns a list of objects representing network devices, including:
+    - name: The name of the device
+    - hostname: The IP address or hostname (domain name) of the device
+    - device_type: The type (vendor and/or model) of this devie
 
-    dev_strings = []
+    ## Example response structure:
+    ```json
+    [
+        {
+            "name": "nexus1",
+            "hostname": 172.16.0.1,
+            "device_type": "cisco_nexus"
+        },
+        {
+            "name": "router1",
+            "hostname": 172.16.0.2,
+            "device_type": "juniper_junos"
+        },
+    ]
+    ```
+
+    ## How to use this information:
+    1. Use `name` to specify a network device to control via `send_command_and_get_output` and `set_config_commands_and_commit_or_save` tools.
+    2. Consider `device_type` to generate operational commands and configation commands depending on e.g., vendor, product, and operating systems.
+
+    """
+
+    logger.info("resource device list!!")
     devs = load_config_toml()
-    for name, dev in sorted(devs.items(), key = lambda x: x[0]):
-        dev_strings.append(f"Name={name} DeviceType={dev.device_type} Hostname={dev.hostname}")
-    return dev_strings
+    return json.dumps([ dev.json() for dev in devs.values() ])
 
 
-@mcp.tool(description="Tool that sends a command to a network device specified by the name and returns its output. Note that acceptalbe commands depend on the device_type of the device you specified. You can get the list of name and device_type by using the list_device tool.")
+@mcp.tool()
 def send_command_and_get_output(name: str, command: str) -> str:
+    """
+
+    Tool that sends a command to a network device specified by the name and returns its output.
+
+    You can get available network devices via tool "get_network_device_list".
+
+    ## Note
+    - Acceptalbe commands depend on the device_type of the network device you specified. You should generate appropriate commands for the device_type.
+
+    """
     devs = load_config_toml()
 
     if not name in devs:
@@ -137,8 +180,18 @@ def send_command_and_get_output(name: str, command: str) -> str:
     return ret
 
 
-@mcp.tool(description="Tool that sends a series of configuration commands to a network device specified by the name. After sending the commands, this tool automatically calls commit and save if necessary, and it returns their output. Note that acceptable configuration commands depdend on the device_type of the device you specified. You can get the list of name and device_type by using the list_device tool.")
+@mcp.tool()
 def set_config_commands_and_commit_or_save(name: str, commands: list[str]) -> str:
+
+    """Tool that sends a series of configuration commands to a network device specified by the name.
+
+    You can get available network devices via tool "get_network_device_list".
+
+    ## Note
+    - Acceptable configuration commands depdend on the device_type of the device you specified. You should generate appropriate configuration commands for the device_type.
+    - After sending the commands, this tool automatically calls commit and save if necessary, and it returns their output.
+    """
+
     if disable_config:
         return "changing configuration is prohibited"
 

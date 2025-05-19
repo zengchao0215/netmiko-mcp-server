@@ -18,6 +18,21 @@ logging.basicConfig(level=logging.INFO)
 
 tomlpath: str|None = None
 disable_config: bool = False
+secured_mode: bool = False
+
+destructive_command_prefixes = [
+    "r", # request, restart, reload, etc
+    "clear",
+    "copy",
+    "write",
+    "delete",
+    "shut",
+    "power",
+    "debug",
+    "lock",
+    "set"
+]
+
 
 mcp = FastMCP("netmiko server", dependencies=["netmiko"])
 
@@ -163,6 +178,12 @@ def send_command_and_get_output(name: str, command: str) -> str:
     - Acceptalbe commands depend on the device_type of the network device you specified. You should generate appropriate commands for the device_type.
 
     """
+    if secured_mode:
+        for prefix in destructive_command_prefixes:
+            if command.startswith(prefix):
+                logger.warning(f"block destructive command for {name}: {command}")
+                return f"Error: destructive command '{command}' is prohibited."
+
     devs = load_config_toml()
 
     if not name in devs:
@@ -218,6 +239,9 @@ def main():
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument("--disable-config", action="store_true",
                         help="disable chaning configuration")
+    parser.add_argument("--secured", action="store_true",
+                        help=("prohibit destructive commands, "
+                              "'clear', 'request', etc, from being executed"))
     parser.add_argument("--sse", action="store_true",
                         help="run as an SSE server (default stdio)")
     parser.add_argument("--port", type=int, default = 10000,
@@ -236,6 +260,9 @@ def main():
 
     global disable_config
     disable_config = args.disable_config
+
+    global secured_mode
+    secured_mode = args.secured
 
     # make sure the current config toml is valid
     load_config_toml()

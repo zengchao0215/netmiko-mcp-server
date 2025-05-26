@@ -132,9 +132,9 @@ def load_config_toml() -> dict[str, Device]:
 @mcp.tool()
 def get_network_device_list() -> str:
     """
-    List all network devices that are accessible through this MCP server.
+    List all network devices that are accessible through this netmiko MCP server.
 
-    This resource returns a list of objects representing network devices, including:
+    This tool returns a list of objects representing network devices, including:
     - name: The name of the device
     - hostname: The IP address or hostname (domain name) of the device
     - device_type: The type (vendor and/or model) of this devie
@@ -156,8 +156,9 @@ def get_network_device_list() -> str:
     ```
 
     ## How to use this information:
-    1. Use `name` to specify a network device to control via `send_command_and_get_output` and `set_config_commands_and_commit_or_save` tools.
+    1. Use `name` to specify a network device to control via other tools that this netmiko MCP server provides.
     2. Consider `device_type` to generate operational commands and configation commands depending on e.g., vendor, product, and operating systems.
+    3. When displaying the list of the accessible network devices, putting the list in a table format would be better, if the user does not specify display formats.
 
     """
 
@@ -175,7 +176,7 @@ def send_command_and_get_output(name: str, command: str) -> str:
     You can get available network devices via tool "get_network_device_list".
 
     ## Note
-    - Acceptalbe commands depend on the device_type of the network device you specified. You should generate appropriate commands for the device_type.
+    - Acceptalbe commands depend on the device_type of the network device you specified. You should carefully generate appropriate commands for the device_type.
 
     """
     if secured_mode:
@@ -209,7 +210,7 @@ def set_config_commands_and_commit_or_save(name: str, commands: list[str]) -> st
     You can get available network devices via tool "get_network_device_list".
 
     ## Note
-    - Acceptable configuration commands depdend on the device_type of the device you specified. You should generate appropriate configuration commands for the device_type.
+    - Acceptable configuration commands depdend on the device_type of the device you specified. You should carefully generate appropriate configuration commands for the device_type.
     - After sending the commands, this tool automatically calls commit and save if necessary, and it returns their output.
     """
 

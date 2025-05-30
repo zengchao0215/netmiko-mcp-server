@@ -24,9 +24,11 @@ destructive_command_prefixes = [
     "r", # request, restart, reload, etc
     "clear",
     "copy",
+    "file",
     "write",
     "delete",
     "shut",
+    "start",
     "power",
     "debug",
     "lock",

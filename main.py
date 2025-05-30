@@ -134,7 +134,7 @@ def load_config_toml() -> dict[str, Device]:
 @mcp.tool()
 def get_network_device_list() -> str:
     """
-    List all network devices that are accessible through this netmiko MCP server.
+    List all network devices that are controllable through this netmiko MCP server.
 
     This tool returns a list of objects representing network devices, including:
     - name: The name of the device
@@ -160,7 +160,7 @@ def get_network_device_list() -> str:
     ## How to use this information:
     1. Use `name` to specify a network device to control via other tools that this netmiko MCP server provides.
     2. Consider `device_type` to generate operational commands and configation commands depending on e.g., vendor, product, and operating systems.
-    3. When displaying the list of the accessible network devices, putting the list in a table format would be better, if the user does not specify display formats.
+    3. When displaying the list of the controllable network devices, putting the list in a table format would be better, if the user does not specify display formats.
 
     """
 

@@ -19,8 +19,10 @@ cd netmiko-mcp-server
 
 # 创建名为venv的虚拟环境
 python -m venv venv    
- # Mac/Linux激活            
+
+# Mac/Linux激活            
 source venv/bin/activate   
+
 # Windows激活       
 venv\Scripts\activate              
 
@@ -28,4 +30,10 @@ venv\Scripts\activate
 pip install -r requirements.txt    
 
 # 启动sse服务
-python main.py --bind 0.0.0.0 --port 10000 --debug --sse --disable-config --secured
+python main.py --bind 0.0.0.0 --port 10000 --sse
+
+# 启动sse服务，并开启安全模式
+python main.py --bind 0.0.0.0 --port 10000 --sse --secured
+
+# 启动sse服务，并开启Debug模式
+python main.py --bind 0.0.0.0 --port 10000 --sse --debug

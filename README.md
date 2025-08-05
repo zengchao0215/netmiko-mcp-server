@@ -6,13 +6,7 @@ An MCP server that enables LLMs interacting with your network devices
 
 | Tool                                   | Description                                                               |
 |:---------------------------------------|:--------------------------------------------------------------------------|
-| get_network_device_list                | Return list of network device names and types defined in a TOML file.     |
 | send_command_and_get_output            | Send a command to a device and returns its output.                        |
-| set_config_commands_and_commit_or_save | Send configuration commands to a device and commit or save automatically. |
-
-
-
-<img width="740" alt="mcp-netmiko-demo" src="https://github.com/user-attachments/assets/08ea7feb-25fc-45c9-a70c-83b75c01a725" />
 
 
 ## How to use
@@ -20,65 +14,18 @@ An MCP server that enables LLMs interacting with your network devices
 * Install
 
 ```console
-git clone https://github.com/upa/mcp-netmiko-server
-cd mcp-netmiko-server
+https://github.com/zengchao0215/netmiko-mcp-server.git
+cd netmiko-mcp-server
 
-# Write your toml file that lists your devices
-vim my-devices.network.toml
+# 创建名为venv的虚拟环境
+python -m venv venv    
+ # Mac/Linux激活            
+source venv/bin/activate   
+# Windows激活       
+venv\Scripts\activate              
 
-# Run via stdio
-uv run --with "mcp[cli]" --with netmiko main.py my-devices.network.toml
+# 批量安装依赖
+pip install -r requirements.txt    
 
-# Run as an SSE server: URL is http://localhost:10000/sse in this case
-uv run --with "mcp[cli]" --with netmiko main.py my-devices.network.toml --sse
-```
-
-* Configuration
-
-List your network devices in a toml file like [sample.network.toml](test/sample.network.toml):
-
-```toml
-[default]
-
-username = "rouser"
-password = "rouserpassword"
-
-[qfx1]
-
-hostname = "172.16.0.40"
-device_type = "juniper_junos"
-
-[nexus1]
-
-hostname = "nexus1.lab"
-device_type = "cisco_nxos"
-```
-
-`[default]` is a special section that defines the default values such
-as `username` and `password`. Devices inherit the default values if
-not defined on their sections.
-
-For `device_type` values, see [netmiko Supported
-Platforms](https://ktbyers.github.io/netmiko/PLATFORMS.html).
-
-
-* claude desktop config json:
-
-```json
-{
-  "mcpServers": {
-    "netmiko server": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--with",
-        "mcp[cli]",
-        "--with",
-        "netmiko",
-        "[PATH TO]/mcp-netmiko-server/main.py",
-        "[PATH TO]/YOUR-DEVICE.toml"
-      ]
-    }
-  }
-}
-```
+# 启动sse服务
+python main.py --bind 0.0.0.0 --port 10000 --debug --sse --disable-config --secured

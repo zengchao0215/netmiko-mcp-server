@@ -1,0 +1,269 @@
+essage CH3CC
+H3C
+
+3c
+
+User Access Verification
+
+Password:***********
+
+
+S2910C-24GT2XS>
+S2910C-24GT2XS>
+S2910C-24GT2XS>
+S2910C-24GT2XS>enable
+
+Password:***********
+
+
+User's password has passed of life cycle!
+Do you want to change the password(yes/no):no
+S2910C-24GT2XS#
+S2910C-24GT2XS#terminal width 256
+S2910C-24GT2XS#terminal length 0
+S2910C-24GT2XS#
+S2910C-24GT2XS#show running-config
+
+Building configuration...
+Current configuration: 5582 bytes
+
+version S29_RGOS 11.4(1)B12P11
+hostname S2910C-24GT2XS
+!
+errdisable recovery interval 300
+voice vlan 22
+mac-address-table notification
+no spanning-tree
+!
+rldp enable
+!
+ip access-list standard 1
+ 10 deny any 
+!
+ip access-list extended 2004
+ 10 permit udp any any eq bootpc 
+ 20 permit udp any any eq bootps 
+!
+ip access-list standard test
+ 10 permit 0.0.0.16 172.17.162.230 
+!
+ip access-list standard test1
+!
+ip access-group 2004 in 
+ip dhcp snooping
+!
+username admin password 7 11443e0d0712042a1d7b3c5e
+username ruijie privilege 15 password 7 13371b430170407868407b
+!
+cwmp
+!
+ip dhcp pool ruijie
+!
+install 0 S2910C-24GT2XS-HP-E
+!
+sysmac 0074.9c96.229e
+!
+nfpp
+!
+password policy life-cycle 1
+service password-encryption
+!
+redundancy
+!
+service sysname
+logging filter direction buffer
+logging filter rule exact-match module SNMP mnemonic AUTHFAIL level 3
+logging count
+logging userinfo command-log
+logging buffered warnings
+logging source ip 172.17.166.20
+logging facility syslog
+logging server 172.17.160.19
+logging server 172.17.162.103
+logging server 172.17.162.118
+logging server 172.17.189.223
+!
+no zam
+banner login ^C3c
+^C
+banner motd ^Cessage CH3CC
+H3C
+^C
+enable secret 5 $1$sRRR$wvxC536s9xv9qF0y 
+enable password 7 001c394b566f110d31533f4e43
+enable service ssh-server
+!
+vlan 22
+ name test
+!
+vlan 1201
+ name relax
+!
+vlan range 1,20,23,30,40,100,300,1024,2022,3111,4003
+!
+interface GigabitEthernet 0/1
+ switchport access vlan 100
+ no poe enable
+!
+interface GigabitEthernet 0/2
+ switchport access vlan 100
+ no poe enable
+!
+interface GigabitEthernet 0/3
+ switchport access vlan 20
+ no poe enable
+!
+interface GigabitEthernet 0/4
+ switchport access vlan 100
+ no poe enable
+!
+interface GigabitEthernet 0/5
+ snmp trap mac-notification added
+ snmp trap mac-notification removed
+ switchport access vlan 100
+ spanning-tree portfast
+ no poe enable
+!
+interface GigabitEthernet 0/6
+ snmp trap mac-notification added
+ snmp trap mac-notification removed
+ switchport access vlan 20
+ spanning-tree portfast
+ no poe enable
+!
+interface GigabitEthernet 0/7
+ switchport access vlan 2022
+ no poe enable
+!
+interface GigabitEthernet 0/8
+ snmp trap mac-notification added
+ snmp trap mac-notification removed
+ switchport access vlan 3111
+ no poe enable
+!
+interface GigabitEthernet 0/9
+ snmp trap mac-notification added
+ snmp trap mac-notification removed
+ switchport access vlan 4003
+ no poe enable
+!
+interface GigabitEthernet 0/10
+ snmp trap mac-notification added
+ snmp trap mac-notification removed
+ switchport access vlan 1024
+ no poe enable
+!
+interface GigabitEthernet 0/11
+ switchport access vlan 20
+ rldp port loop-detect shutdown-port
+ no poe enable
+!
+interface GigabitEthernet 0/12
+ switchport access vlan 20
+ no poe enable
+!
+interface GigabitEthernet 0/13
+ switchport access vlan 20
+ no poe enable
+!
+interface GigabitEthernet 0/14
+ switchport access vlan 20
+ no poe enable
+!
+interface GigabitEthernet 0/15
+ switchport access vlan 20
+ no poe enable
+!
+interface GigabitEthernet 0/16
+ switchport access vlan 20
+ no poe enable
+!
+interface GigabitEthernet 0/17
+ switchport access vlan 20
+ no poe enable
+!
+interface GigabitEthernet 0/18
+ snmp trap mac-notification added
+ snmp trap mac-notification removed
+ switchport access vlan 20
+ no poe enable
+!
+interface GigabitEthernet 0/19
+ snmp trap mac-notification added
+ snmp trap mac-notification removed
+ switchport access vlan 300
+ no poe enable
+!
+interface GigabitEthernet 0/20
+ snmp trap mac-notification added
+ snmp trap mac-notification removed
+ switchport access vlan 1201
+ spanning-tree portfast
+ no poe enable
+!
+interface GigabitEthernet 0/21
+ switchport mode trunk
+ no poe enable
+!
+interface GigabitEthernet 0/22
+ description To-Agg1
+ port-group 1
+ rldp port loop-detect shutdown-port
+ poe enable
+!
+interface GigabitEthernet 0/23
+ description 0918test
+ shutdown
+ switchport mode trunk
+ no poe enable
+!
+interface GigabitEthernet 0/24
+ description To-Agg1
+ port-group 1
+ rldp port loop-detect shutdown-port
+ poe enable
+!
+interface TenGigabitEthernet 0/25
+ speed 100
+ ip dhcp snooping trust
+!
+interface TenGigabitEthernet 0/26
+ snmp trap mac-notification added
+ snmp trap mac-notification removed
+!
+interface AggregatePort 1
+ description To-166.2 1014
+ switchport mode trunk
+ switchport trunk allowed vlan only 1,30
+ spanning-tree bpdufilter enable
+!
+interface VLAN 1
+ ip address 172.17.166.20 255.255.255.248
+ ipv6 address 2001:167::11/64
+ ipv6 enable
+!
+ip route 0.0.0.0 0.0.0.0 172.17.166.17
+!
+snmp-server group riil v3 priv read default write default 
+snmp-server group group v3 priv read default write default 
+snmp-server host 172.17.160.197 traps version 2c Cazz-2024 udp-port 8162  mac-notification
+snmp-server host 10.51.196.25 traps version 2c Cazz-2024 udp-port 8162  mac-notification
+snmp-server host 172.17.162.103 traps version 2c Cazz-2024 mac-notification
+snmp-server host 172.17.162.106 traps version 2c Cazz-2024 mac-notification
+snmp-server host 172.17.160.184 traps version 2c ruijie
+snmp-server host 10.51.196.25 traps version 2c ruijie
+snmp-server host 172.17.160.197 traps version 2c ruijie
+snmp-server host 172.17.163.178 traps version 2c ruijie
+snmp-server enable traps
+snmp-server community 7 0132564a3d1103 ro 
+snmp-server community 7 072a063c01 rw test 
+snmp-server community 7 07160623191d35101b400424 rw 
+!
+line console 0
+line vty 0 4
+ login
+ password 7 001c394b566f110d31533f4e
+!
+end
+S2910C-24GT2XS#
+S2910C-24GT2XS#exit

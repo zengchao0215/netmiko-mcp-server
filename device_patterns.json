@@ -1,0 +1,8 @@
+{
+    "ruijie_os": [
+        {
+            "pattern": "Do you want to change the password",
+            "send_content": "no"
+        }
+    ]
+}

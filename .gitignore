@@ -20,3 +20,4 @@ wheels/
 .vscode/
 logs/*
 test.py
+docker-build.sh

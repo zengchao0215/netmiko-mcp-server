@@ -109,7 +109,7 @@ def send_command_and_get_output(hostname: str, device_type: str, username: str,
 
     Args:
         hostname: The IP address or hostname of the device
-        device_type: The type of device (e.g. cisco_ios, juniper_junos)
+        device_type: The device_type must strictly follow the types officially supported by netmiko， (e.g. cisco_ios, juniper_junos, ruijie_os)，
         username: Login username
         password: Login password
         port: Port number (default: 22 for SSH, 23 for Telnet)

@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  netmiko-mcp-server:
+    build: .
+    container_name: netmiko-mcp-server
+    image: zengchao0215/netmiko-mcp-server:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped

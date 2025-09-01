@@ -1,8 +1,12 @@
 import argparse
 
+
 from netmiko import ConnectHandler
 from netmiko import exceptions
 from netmiko.ssh_dispatcher import platforms, telnet_platforms
+import winrm
+from pyghmi.ipmi import command as ipmi_command
+import json
 
 from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
@@ -105,7 +109,7 @@ def send_command_and_get_output(hostname: str, device_type: str, username: str,
                               password: str, port: int = 22, command: str = "",
                               protocol: str = "ssh") -> str:
     """
-    Tool that sends a command to a network device and returns its output.
+    Tool that sends a command to a network device or os device and returns its output.
 
     Args:
         hostname: The IP address or hostname of the device
@@ -114,7 +118,7 @@ def send_command_and_get_output(hostname: str, device_type: str, username: str,
         password: Login password
         port: Port number (default: 22 for SSH, 23 for Telnet)
         command: The command to execute on the device
-        protocol: Connection protocol, either "ssh" or "telnet" (default: "ssh")
+        protocol: Connection protocol, either "ssh"、"telnet"、"winrm"、"ipmi" (default: "ssh")
 
     Returns:
         The output from the executed command as a string
@@ -123,39 +127,74 @@ def send_command_and_get_output(hostname: str, device_type: str, username: str,
     - Acceptable commands depend on the device_type of the network device. 
       You should carefully generate appropriate commands for the device_type.
     - For Telnet connections, device_type should end with "_telnet" (e.g. cisco_ios_telnet)
+    - 对于 ipmi 协议，command 参数必须为 JSON 字符串，格式如下：
+        {
+            "netfn": <int>,
+            "command": <int>,
+            "data": [<int>, ...]   # 可选，默认为空数组
+        }
+      示例：
+        '{"netfn": 0x06, "command": 0x01, "data": [0x00, 0x01]}'
+      如果 command 不是合法的 JSON 字符串，将返回错误："Error: command is not a valid JSON string."
     """
-    if secured_mode:
-        for prefix in destructive_command_prefixes:
-            if command.startswith(prefix):
-                logger.warning(f"block destructive command for {hostname}: {command}")
-                return f"Error: destructive command '{command}' is prohibited."
+    protocol = protocol.lower()
+    if protocol not in ["ssh", "telnet", "winrm", "ipmi"]:
+        return f"Error: unsupported protocol '{protocol}'. Supported protocols are 'ssh', 'telnet', 'winrm', 'ipmi'."
+    if protocol in ["ssh", "telnet"]:
+        if secured_mode:
+            for prefix in destructive_command_prefixes:
+                if command.startswith(prefix):
+                    logger.warning(f"block destructive command for {hostname}: {command}")
+                    return f"Error: destructive command '{command}' is prohibited."
 
-    try:
-        # 修改device_type以支持telnet
-        if protocol.lower() == "telnet":
-            # 对于 H3C 设备使用 hp_comware_telnet
-            if "h3c" in device_type.lower() or "hp" in device_type.lower():
-                device_type = "hp_comware_telnet"
-            elif not device_type.endswith("_telnet"):
-                device_type = f"{device_type}_telnet"
-            
-            if port == 22:  # 如果未指定端口，对telnet使用默认端口23
-                port = 23
+        try:
+            # 修改device_type以支持telnet
+            if protocol.lower() == "telnet":
+                # 对于 H3C 设备使用 hp_comware_telnet
+                if "h3c" in device_type.lower() or "hp" in device_type.lower():
+                    device_type = "hp_comware_telnet"
+                elif not device_type.endswith("_telnet"):
+                    device_type = f"{device_type}_telnet"
+                
+                if port == 22:  # 如果未指定端口，对telnet使用默认端口23
+                    port = 23
 
-        logger.info(f"Connecting to {hostname}:{port} via {protocol} with device_type: {device_type}")
-        device = Device(hostname=hostname, 
-                       device_type=device_type,
-                       username=username,
-                       password=password,
-                       port=port)
-        
-        logger.info(f"Sending command to {hostname}:{port} via {protocol} {command}")
-        ret = device.send_command(command)
-        logger.info(f"Command executed successfully, output length: {len(ret)}")
-    except exceptions.ConnectionException as e:
-        ret = f"Connection Error: {e}"
-    except ValueError as e:
-        ret = f"Configuration Error: {e}"
+            logger.info(f"Connecting to {hostname}:{port} via {protocol} with device_type: {device_type}")
+            device = Device(hostname=hostname, 
+                        device_type=device_type,
+                        username=username,
+                        password=password,
+                        port=port)
+            logger.info(f"Sending command to {hostname}:{port} via {protocol} {command}")
+            ret = device.send_command(command)
+            logger.info(f"Command executed successfully, output length: {len(ret)}")
+        except exceptions.ConnectionException as e:
+            ret = f"Connection Error: {e}"
+        except ValueError as e:
+            ret = f"Configuration Error: {e}"
+    elif protocol == "winrm":
+        if port is None:
+            port = 5985
+        try: 
+            winrmSession = winrm.Session(f"http://${hostname}:${port}/wsman", auth=(username, password))
+            result = winrmSession.run_cmd(command)
+            if result.status_code != 0:
+                ret = f"Command Error: {result.std_err.decode('utf-8')}"
+            else:
+                ret = result.std_out.decode('utf-8')
+        except Exception as e:
+            ret = f"Connection Error: {e}"
+    elif protocol == "ipmi":
+        try:
+            bmc = json.loads(command)
+        except Exception:
+            return "Error: command is not a valid JSON string."
+        try:
+            ipmi_cmd = ipmi_command.Command(bmc=hostname, userid=username, password=password)
+            response = ipmi_cmd.raw_command(netfn=bmc.get("netfn"), command=bmc.get("command"), data=bmc.get("data", []))
+            ret = str(response)
+        except Exception as e:
+            ret = f"Connection Error: {e}"
 
     return ret
 

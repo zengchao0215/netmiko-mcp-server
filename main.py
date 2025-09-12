@@ -1,10 +1,8 @@
 import argparse
-
-
 from netmiko import ConnectHandler
 from netmiko import exceptions
 from netmiko.ssh_dispatcher import platforms, telnet_platforms
-import winrm
+from winrm.protocol import Protocol
 from pyghmi.ipmi import command as ipmi_command
 import json
 
@@ -106,7 +104,7 @@ class Device:
 
 @mcp.tool()
 def send_command_and_get_output(hostname: str, device_type: str, username: str, 
-                              password: str, port: int = 22, command: str = "",
+                              password: str, port: int = None, command: str = None,
                               protocol: str = "ssh") -> str:
     """
     Tool that sends a command to a network device or os device and returns its output.
@@ -116,7 +114,7 @@ def send_command_and_get_output(hostname: str, device_type: str, username: str,
         device_type: The device_type must strictly follow the types officially supported by netmiko， (e.g. cisco_ios, juniper_junos, ruijie_os)，
         username: Login username
         password: Login password
-        port: Port number (default: 22 for SSH, 23 for Telnet)
+        port: Port number (default: 22 for SSH, 23 for Telnet， 5985 for WinRM)
         command: The command to execute on the device
         protocol: Connection protocol, either "ssh"、"telnet"、"winrm"、"ipmi" (default: "ssh")
 
@@ -138,66 +136,147 @@ def send_command_and_get_output(hostname: str, device_type: str, username: str,
       如果 command 不是合法的 JSON 字符串，将返回错误："Error: command is not a valid JSON string."
     """
     protocol = protocol.lower()
-    if protocol not in ["ssh", "telnet", "winrm", "ipmi"]:
-        return f"Error: unsupported protocol '{protocol}'. Supported protocols are 'ssh', 'telnet', 'winrm', 'ipmi'."
-    if protocol in ["ssh", "telnet"]:
-        if secured_mode:
-            for prefix in destructive_command_prefixes:
-                if command.startswith(prefix):
-                    logger.warning(f"block destructive command for {hostname}: {command}")
-                    return f"Error: destructive command '{command}' is prohibited."
+    if protocol not in ["ssh", "telnet"]:
+        return f"Error: unsupported protocol '{protocol}'. Supported protocols are 'ssh', 'telnet'"
+    
+    if secured_mode:
+        for prefix in destructive_command_prefixes:
+            if command.startswith(prefix):
+                logger.warning(f"block destructive command for {hostname}: {command}")
+                return f"Error: destructive command '{command}' is prohibited."
 
-        try:
-            # 修改device_type以支持telnet
-            if protocol.lower() == "telnet":
-                # 对于 H3C 设备使用 hp_comware_telnet
-                if "h3c" in device_type.lower() or "hp" in device_type.lower():
-                    device_type = "hp_comware_telnet"
-                elif not device_type.endswith("_telnet"):
-                    device_type = f"{device_type}_telnet"
-                
-                if port == 22:  # 如果未指定端口，对telnet使用默认端口23
-                    port = 23
-
-            logger.info(f"Connecting to {hostname}:{port} via {protocol} with device_type: {device_type}")
-            device = Device(hostname=hostname, 
-                        device_type=device_type,
-                        username=username,
-                        password=password,
-                        port=port)
-            logger.info(f"Sending command to {hostname}:{port} via {protocol} {command}")
-            ret = device.send_command(command)
-            logger.info(f"Command executed successfully, output length: {len(ret)}")
-        except exceptions.ConnectionException as e:
-            ret = f"Connection Error: {e}"
-        except ValueError as e:
-            ret = f"Configuration Error: {e}"
-    elif protocol == "winrm":
+    try:
         if port is None:
-            port = 5985
-        try: 
-            winrmSession = winrm.Session(f"http://${hostname}:${port}/wsman", auth=(username, password))
-            result = winrmSession.run_cmd(command)
-            if result.status_code != 0:
-                ret = f"Command Error: {result.std_err.decode('utf-8')}"
-            else:
-                ret = result.std_out.decode('utf-8')
-        except Exception as e:
-            ret = f"Connection Error: {e}"
-    elif protocol == "ipmi":
-        try:
-            bmc = json.loads(command)
-        except Exception:
-            return "Error: command is not a valid JSON string."
-        try:
-            ipmi_cmd = ipmi_command.Command(bmc=hostname, userid=username, password=password)
-            response = ipmi_cmd.raw_command(netfn=bmc.get("netfn"), command=bmc.get("command"), data=bmc.get("data", []))
-            ret = str(response)
-        except Exception as e:
-            ret = f"Connection Error: {e}"
+            port = 22
+        # 修改device_type以支持telnet
+        if protocol.lower() == "telnet":
+            # 对于 H3C 设备使用 hp_comware_telnet
+            if "h3c" in device_type.lower() or "hp" in device_type.lower():
+                device_type = "hp_comware_telnet"
+            elif not device_type.endswith("_telnet"):
+                device_type = f"{device_type}_telnet"
+            
+            if port == 22:  # 如果未指定端口，对telnet使用默认端口23
+                port = 23
+
+        logger.info(f"Connecting to {hostname}:{port} via {protocol} with device_type: {device_type}")
+        device = Device(hostname=hostname, 
+                    device_type=device_type,
+                    username=username,
+                    password=password,
+                    port=port)
+        logger.info(f"Sending command to {hostname}:{port} via {protocol} {command}")
+        ret = device.send_command(command)
+        logger.info(f"Command executed successfully, output length: {len(ret)}")
+    except exceptions.ConnectionException as e:
+        ret = f"Connection Error: {e}"
+    except ValueError as e:
+        ret = f"Configuration Error: {e}"
 
     return ret
 
+@mcp.tool()
+def send_winrm_command_and_get_output(hostname: str, username: str, 
+                              password: str, command: str,
+                              transport: str = "ntlm",
+                              port: int = 5985,
+                              protocol: str = "http") -> str:
+    """
+    Tool that sends a command to a windows device and returns its output.
+
+    Args:
+        hostname: The IP address or hostname of the device
+        username: Login username
+        password: Login password
+        command: The command to execute on the device
+        transport: The transport must strictly follow the types officially supported by winrm， (e.g. basic, ntlm, kerberos, negotiate, certificate)，default ntlm
+        port: Port number (default: 5985 for WinRM)
+        protocol: Connection protocol, either "http"、"https" (default: "http")
+
+    Returns:
+        The output from the executed command as a string
+
+    """
+    protocol = protocol.lower()
+    if protocol not in ["http", "https"]:
+        return f"Error: unsupported protocol '{protocol}'. Supported protocols are 'http', 'https'."
+    transport = transport.lower()
+    if transport not in ["basic", "ntlm", "kerberos", "negotiate", "certificate"]:
+        transport = "ntlm"
+
+    if port is None:
+        port = protocol == "http" and 5985 or 5986
+
+    try: 
+        winrm_url = f"{protocol}://{hostname}:{port}/wsman"
+        # print("winrm_url = ", winrm_url, username, transport)
+        # winrmSession = winrm.Session("172.17.189.125", auth=(r".\administrator", "VMware1!"), transport="ntlm")
+        # result = winrmSession.run_cmd("ipconfig", ["/all"])
+        # winrmSession = winrm.Session(hostname, auth=(username, password), transport=transport)
+        # result = winrmSession.run_cmd(command)
+
+        p = Protocol(
+            endpoint=winrm_url,
+            transport=transport,
+            username=username,
+            password=password,
+            server_cert_validation='ignore')
+        shell_id = p.open_shell()
+        command_id = p.run_command(shell_id, command)
+        std_out, std_err, status_code = p.get_command_output(shell_id, command_id)
+        
+        if status_code != 0:
+            ret = f"Command Error: {std_err.decode('utf-8')}"
+        else:
+            ret = std_out.decode('utf-8')
+        p.cleanup_command(shell_id, command_id)
+        p.close_shell(shell_id)
+    except Exception as e:
+        ret = f"Connection Error: {e}"
+            
+    return ret
+
+@mcp.tool()
+def send_ipmi_command_and_get_output(hostname: str, username: str, 
+                              password: str, port: int = 623, command: str = None) -> str:
+    """
+    Tool that sends a command to a windows device and returns its output.
+
+    Args:
+        hostname: The IP address or hostname of the device
+        username: Login username
+        password: Login password
+        port: Port number (default: 623 for ipmi)
+        command: The command to execute on the device
+
+    Returns:
+        The output from the executed command as a string
+
+    ## Note
+    - 对于 ipmi 协议，command 参数必须为 JSON 字符串，格式如下：
+        {
+            "netfn": <int>,
+            "command": <int>,
+            "data": [<int>, ...]   # 可选，默认为空数组
+        }
+      其中的netfn/command均为整数, data为整数数组，且数值需要遵循IPMI协议规范以及ipmitool_raw的参数要求
+      示例：
+        '{"netfn": 6, "command": 1, "data": [0, 1]}'
+      如果 command 不是合法的 JSON 字符串，将返回错误："Error: command is not a valid JSON string."
+    """
+    try:
+        bmc = json.loads(command)
+    except Exception:
+        return "Error: command is not a valid JSON string."
+    try:
+        ipmi_cmd = ipmi_command.Command(bmc=hostname, userid=username, password=password, port=port)
+        print("ipmi_cmd: ", ipmi_cmd)
+        response = ipmi_cmd.raw_command(netfn=bmc.get("netfn"), command=bmc.get("command"), data=bmc.get("data", []))
+        ret = str(response)
+    except Exception as e:
+        ret = f"Connection Error: {e}"
+
+    return ret
 
 def create_app(debug: bool = False):
     """创建 Starlette 应用实例的工厂函数"""

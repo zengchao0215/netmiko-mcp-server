@@ -253,25 +253,68 @@ def send_ipmi_command_and_get_output(hostname: str, username: str,
         The output from the executed command as a string
 
     ## Note
-    - 对于 ipmi 协议，command 参数必须为 JSON 字符串，格式如下：
-        {
-            "netfn": <int>,
-            "command": <int>,
-            "data": [<int>, ...]   # 可选，默认为空数组
-        }
-      其中的netfn/command均为整数, data为整数数组，且数值需要遵循IPMI协议规范以及ipmitool_raw的参数要求
-      示例：
-        '{"netfn": 6, "command": 1, "data": [0, 1]}'
-      如果 command 不是合法的 JSON 字符串，将返回错误："Error: command is not a valid JSON string."
+    - command supports:
+        - get_alert_community
+        - get_alert_destination
+        - get_alert_destination_count
+        - get_asset_tag
+        - get_average_processor_temperature
+        - get_bmc_configuration
+        - get_bootdev
+        - get_capping_enabled
+        - get_channel_access
+        - get_channel_info
+        - get_channel_max_user_count
+        - get_description
+        - get_diagnostic_data
+        - get_domain_name
+        - get_event_constants
+        - get_event_log
+        - get_extended_bmc_configuration
+        - get_firmware
+        - get_graphical_console
+        - get_health
+        - get_hostname
+        - get_ikvm_launchdata
+        - get_ikvm_methods
+        - get_inlet_temperature
+        - get_inventory
+        - get_inventory_descriptions
+        - get_inventory_of_component
+        - get_leds
+        - get_licenses
+        - get_mci
+        - get_name_uids
+        - get_net6_configuration
+        - get_net_configuration
+        - get_network_channel
+        - get_ntp_enabled
+        - get_ntp_servers
+        - get_power
+        - get_remote_kvm_available
+        - get_screenshot
+        - get_sensor_data
+        - get_sensor_descriptions
+        - get_sensor_reading
+        - get_server_capping
+        - get_storage_configuration
+        - get_system_configuration
+        - get_system_power_watts
+        - get_update_status
+        - get_user
+        - get_user_access
+        - get_user_name
+        - get_users
+        - get_video_launchdata
     """
-    try:
-        bmc = json.loads(command)
-    except Exception:
-        return "Error: command is not a valid JSON string."
+    support_commands = ['get_alert_community','get_alert_destination','get_alert_destination_count','get_asset_tag','get_average_processor_temperature','get_bmc_configuration','get_bootdev','get_capping_enabled','get_channel_access','get_channel_info','get_channel_max_user_count','get_description','get_diagnostic_data','get_domain_name','get_event_constants','get_event_log','get_extended_bmc_configuration','get_firmware','get_graphical_console','get_health','get_hostname','get_ikvm_launchdata','get_ikvm_methods','get_inlet_temperature','get_inventory','get_inventory_descriptions','get_inventory_of_component','get_leds','get_licenses','get_mci','get_name_uids','get_net6_configuration','get_net_configuration','get_network_channel','get_ntp_enabled','get_ntp_servers','get_power','get_remote_kvm_available','get_screenshot','get_sensor_data','get_sensor_descriptions','get_sensor_reading','get_server_capping','get_storage_configuration','get_system_configuration','get_system_power_watts','get_update_status','get_user','get_user_access','get_user_name','get_users','get_video_launchdata']
+    command = command.lower()
+    if command not in support_commands:
+        return f"Error: unsupported command '{command}'. Supported commands are {str(support_commands)}."
     try:
         ipmi_cmd = ipmi_command.Command(bmc=hostname, userid=username, password=password, port=port)
-        print("ipmi_cmd: ", ipmi_cmd)
-        response = ipmi_cmd.raw_command(netfn=bmc.get("netfn"), command=bmc.get("command"), data=bmc.get("data", []))
+        response = getattr(ipmi_cmd, command)()
+        
         ret = str(response)
     except Exception as e:
         ret = f"Connection Error: {e}"
